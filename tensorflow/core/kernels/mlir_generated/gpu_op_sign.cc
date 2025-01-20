@@ -13,7 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
+#include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/kernels/mlir_generated/base_gpu_op.h"
 
 namespace tensorflow {
@@ -23,6 +24,11 @@ GENERATE_AND_REGISTER_UNARY_GPU_KERNEL(Sign, DT_FLOAT);
 GENERATE_AND_REGISTER_UNARY_GPU_KERNEL(Sign, DT_DOUBLE);
 // TODO(b/25387198): We cannot use a regular GPU kernel for int32.
 GENERATE_AND_REGISTER_UNARY_GPU_KERNEL(Sign, DT_INT64);
-// TODO(b/162577610): Register the kernel for complex types and bfloat.
+GENERATE_AND_REGISTER_UNARY_GPU_KERNEL(Sign, DT_COMPLEX64);
+GENERATE_AND_REGISTER_UNARY_GPU_KERNEL(Sign, DT_COMPLEX128);
+
+// These kernels are JIT-compiled.
+GENERATE_AND_REGISTER_UNARY_JIT_GPU_KERNEL(Sign, DT_INT8);
+GENERATE_AND_REGISTER_UNARY_JIT_GPU_KERNEL(Sign, DT_INT16);
 
 }  // namespace tensorflow

@@ -21,10 +21,10 @@ import numpy as np
 
 from tensorflow.python.eager import context
 from tensorflow.python.eager import def_function
-from tensorflow.python.eager import monitoring
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
+from tensorflow.python.framework import tensor
 from tensorflow.python.keras import backend
 from tensorflow.python.keras.engine import data_adapter
 from tensorflow.python.keras.engine.base_layer import Layer
@@ -34,16 +34,9 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import sparse_ops
 from tensorflow.python.ops import variables
 from tensorflow.python.ops.ragged import ragged_tensor
-from tensorflow.python.training.tracking import base as trackable
-from tensorflow.python.util.tf_export import keras_export
+from tensorflow.python.trackable import base as trackable
 
 
-keras_kpl_gauge = monitoring.BoolGauge(
-    '/tensorflow/api/keras/layers/preprocessing',
-    'keras preprocessing layers usage', 'method')
-
-
-@keras_export('keras.layers.experimental.preprocessing.PreprocessingLayer')
 class PreprocessingLayer(Layer, metaclass=abc.ABCMeta):
   """Base class for Preprocessing Layers.
 
@@ -203,36 +196,34 @@ class PreprocessingLayer(Layer, metaclass=abc.ABCMeta):
 
     `tf.keras.Model` example with multiple adapts:
 
-    >>> layer = tf.keras.layers.experimental.preprocessing.Normalization()
+    >>> layer = tf.keras.layers.experimental.preprocessing.Normalization(
+    ...     axis=None)
     >>> layer.adapt([0, 2])
     >>> model = tf.keras.Sequential(layer)
     >>> model.predict([0, 1, 2])
-    array([[-1.],
-           [ 0.],
-           [ 1.]], dtype=float32)
+    array([-1.,  0.,  1.], dtype=float32)
     >>> layer.adapt([-1, 1])
     >>> model.compile() # This is needed to re-compile model.predict!
     >>> model.predict([0, 1, 2])
-    array([[0.],
-           [1.],
-           [2.]], dtype=float32)
+    array([0., 1., 2.], dtype=float32)
 
     `tf.data.Dataset` example with multiple adapts:
 
-    >>> layer = tf.keras.layers.experimental.preprocessing.Normalization()
+    >>> layer = tf.keras.layers.experimental.preprocessing.Normalization(
+    ...     axis=None)
     >>> layer.adapt([0, 2])
     >>> input_ds = tf.data.Dataset.range(3)
     >>> normalized_ds = input_ds.map(layer)
     >>> list(normalized_ds.as_numpy_iterator())
-    [array([[-1.]], dtype=float32),
-     array([[0.]], dtype=float32),
-     array([[1.]], dtype=float32)]
+    [array([-1.], dtype=float32),
+     array([0.], dtype=float32),
+     array([1.], dtype=float32)]
     >>> layer.adapt([-1, 1])
     >>> normalized_ds = input_ds.map(layer) # Re-map over the input dataset.
     >>> list(normalized_ds.as_numpy_iterator())
-    [array([[0.]], dtype=float32),
-     array([[1.]], dtype=float32),
-     array([[2.]], dtype=float32)]
+    [array([0.], dtype=float32),
+     array([1.], dtype=float32),
+     array([2.], dtype=float32)]
 
     Arguments:
         data: The data to train on. It can be passed either as a tf.data
@@ -476,7 +467,7 @@ def convert_to_list(values, sparse_default_value=None):
         values, default_value=sparse_default_value)
     values = backend.get_value(dense_tensor)
 
-  if isinstance(values, ops.Tensor):
+  if isinstance(values, tensor.Tensor):
     values = backend.get_value(values)
 
   # We may get passed a ndarray or the code above may give us a ndarray.

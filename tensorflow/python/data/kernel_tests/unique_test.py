@@ -14,10 +14,6 @@
 # ==============================================================================
 """Tests for `tf.data.Dataset.unique()`."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 
 from tensorflow.python.data.kernel_tests import checkpoint_test_base
@@ -80,11 +76,6 @@ class UniqueTest(test_base.DatasetTestBase, parameterized.TestCase):
 
   @combinations.generate(test_base.graph_only_combinations())
   def testUnsupportedTypes(self):
-    """Should raise TypeError when element type doesn't match with the
-
-    dtypes.int64, dtypes.int32 or dtypes.string (supported types).
-    """
-
     for dtype in [
         dtypes.bool, dtypes.double, dtypes.complex64, dtypes.float32,
         dtypes.float64, dtypes.qint16, dtypes.qint32
@@ -92,18 +83,25 @@ class UniqueTest(test_base.DatasetTestBase, parameterized.TestCase):
       with self.assertRaises(TypeError):
         _ = dataset_ops.Dataset.from_generator(lambda: [], dtype).unique()
 
+  @combinations.generate(test_base.default_test_combinations())
+  def testName(self):
+    dataset = dataset_ops.Dataset.from_tensors(42).unique(name="unique")
+    self.assertDatasetProduces(dataset, [42])
+
 
 class UniqueCheckpointTest(checkpoint_test_base.CheckpointTestBase,
                            parameterized.TestCase):
 
-  @combinations.generate(test_base.default_test_combinations())
-  def testUnique(self):
+  @combinations.generate(
+      combinations.times(test_base.default_test_combinations(),
+                         checkpoint_test_base.default_test_combinations()))
+  def test(self, verify_fn):
 
     def build_dataset(num_elements, unique_elem_range):
       return dataset_ops.Dataset.range(num_elements).map(
           lambda x: x % unique_elem_range).unique()
 
-    self.run_core_tests(lambda: build_dataset(200, 100), 100)
+    verify_fn(self, lambda: build_dataset(200, 100), num_outputs=100)
 
 
 if __name__ == "__main__":

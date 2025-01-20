@@ -1,7 +1,8 @@
+load("//tensorflow:tensorflow.default.bzl", "get_compatible_with_portable")
 load("//tensorflow/lite:special_rules.bzl", "if_nnapi")
-load("//tensorflow:tensorflow.bzl", "get_compatible_with_portable")
 
 package(
+    # copybara:uncomment default_applicable_licenses = ["//tensorflow:license"],
     default_visibility = [
         "//visibility:public",
     ],
@@ -16,6 +17,15 @@ cc_library(
     ],
     compatible_with = get_compatible_with_portable(),
     linkopts = if_nnapi(["-ldl"]),
+)
+
+cc_library(
+    name = "nnapi_implementation_headers",
+    hdrs = ["nnapi_implementation.h"],
+    compatible_with = get_compatible_with_portable(),
+    deps = [
+        ":nnapi_lib",
+    ],
 )
 
 cc_library(
@@ -51,9 +61,9 @@ cc_library(
     hdrs = ["nnapi_util.h"],
     compatible_with = get_compatible_with_portable(),
     deps = [
-        ":nnapi_implementation",
+        ":nnapi_implementation_headers",
         "//tensorflow/lite:util",
-        "//tensorflow/lite/c:common",
+        "//tensorflow/lite/core/c:common",
     ],
 )
 

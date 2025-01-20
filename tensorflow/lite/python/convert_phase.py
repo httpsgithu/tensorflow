@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,23 +14,13 @@
 # ==============================================================================
 """Utilities for collecting TFLite metrics."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import enum
 import functools
 from typing import Text
 
-from tensorflow.lite.python.metrics_wrapper import converter_error_data_pb2
-
-# pylint: disable=g-import-not-at-top
-try:
-  from tensorflow.lite.python import metrics_portable as metrics
-except ImportError:
-  from tensorflow.lite.python import metrics_nonportable as metrics
-# pylint: enable=g-import-not-at-top
+from tensorflow.compiler.mlir.lite.metrics import converter_error_data_pb2
+from tensorflow.lite.python.metrics import metrics
 
 
 class Component(enum.Enum):
@@ -50,7 +39,7 @@ SubComponentItem = collections.namedtuple("SubComponentItem",
                                           ["name", "component"])
 
 
-class SubComponent(enum.Enum):
+class SubComponent(SubComponentItem, enum.Enum):
   """Enum class defining name of the converter subcomponents.
 
   This enum only defines the subcomponents in Python, there might be more
@@ -87,6 +76,10 @@ class SubComponent(enum.Enum):
   CONVERT_KERAS_TO_SAVED_MODEL = SubComponentItem(
       "CONVERT_KERAS_TO_SAVED_MODEL", Component.PREPARE_TF_MODEL)
 
+  # Save Concrete functions to SavedModel.
+  CONVERT_CONCRETE_FUNCTIONS_TO_SAVED_MODEL = SubComponentItem(
+      "CONVERT_CONCRETE_FUNCTIONS_TO_SAVED_MODEL", Component.PREPARE_TF_MODEL)
+
   # Convert a Keras model to a frozen graph.
   FREEZE_KERAS_MODEL = SubComponentItem("FREEZE_KERAS_MODEL",
                                         Component.PREPARE_TF_MODEL)
@@ -112,6 +105,10 @@ class SubComponent(enum.Enum):
   CONVERT_SAVED_MODEL = SubComponentItem("CONVERT_SAVED_MODEL",
                                          Component.CONVERT_TF_TO_TFLITE_MODEL)
 
+  # Convert a Jax HLO to TFLite model.
+  CONVERT_JAX_HLO = SubComponentItem("CONVERT_JAX_HLO",
+                                     Component.CONVERT_TF_TO_TFLITE_MODEL)
+
   # Do quantization by the deprecated quantizer.
   QUANTIZE_USING_DEPRECATED_QUANTIZER = SubComponentItem(
       "QUANTIZE_USING_DEPRECATED_QUANTIZER", Component.OPTIMIZE_TFLITE_MODEL)
@@ -132,10 +129,37 @@ class ConverterError(Exception):
   def __init__(self, message):
     super(ConverterError, self).__init__(message)
     self.errors = []
+    self._parse_error_message(message)
 
   def append_error(self,
                    error_data: converter_error_data_pb2.ConverterErrorData):
     self.errors.append(error_data)
+
+  def _parse_error_message(self, message):
+    """If the message matches a pattern, assigns the associated error code.
+
+    It is difficult to assign an error code to some errrors in MLIR side, Ex:
+    errors thrown by other components than TFLite or not using mlir::emitError.
+    This function try to detect them by the error message and assign the
+    corresponding error code.
+
+    Args:
+      message: The error message of this exception.
+    """
+    error_code_mapping = {
+        "Failed to functionalize Control Flow V1 ops. Consider using Control "
+        "Flow V2 ops instead. See https://www.tensorflow.org/api_docs/python/"
+        "tf/compat/v1/enable_control_flow_v2.":
+            converter_error_data_pb2.ConverterErrorData
+            .ERROR_UNSUPPORTED_CONTROL_FLOW_V1,
+    }
+    for pattern, error_code in error_code_mapping.items():
+      if pattern in message:
+        error_data = converter_error_data_pb2.ConverterErrorData()
+        error_data.error_message = message
+        error_data.error_code = error_code
+        self.append_error(error_data)
+        return
 
 
 def convert_phase(component, subcomponent=SubComponent.UNSPECIFIED):

@@ -33,18 +33,16 @@ static const char* kTestPluginOptimizerName = "TestPlugin";
 
 class TestGraphOptimizer : public CustomGraphOptimizer {
  public:
-  Status Init(
+  absl::Status Init(
       const tensorflow::RewriterConfig_CustomGraphOptimizer* config) override {
-    return Status::OK();
+    return absl::OkStatus();
   }
   string name() const override { return kTestOptimizerName; }
   bool UsesFunctionLibrary() const override { return false; }
-  Status Optimize(Cluster* cluster, const GrapplerItem& item,
-                  GraphDef* optimized_graph) override {
-    return Status::OK();
+  absl::Status Optimize(Cluster* cluster, const GrapplerItem& item,
+                        GraphDef* optimized_graph) override {
+    return absl::OkStatus();
   }
-  void Feedback(Cluster* cluster, const GrapplerItem& item,
-                const GraphDef& optimized_graph, double result) override {}
 };
 
 REGISTER_GRAPH_OPTIMIZER_AS(TestGraphOptimizer, "StaticRegister");
@@ -89,18 +87,16 @@ TEST(GraphOptimizerRegistryTest, CrashesOnDuplicateRegistration) {
 
 class TestPluginGraphOptimizer : public CustomGraphOptimizer {
  public:
-  Status Init(
+  absl::Status Init(
       const tensorflow::RewriterConfig_CustomGraphOptimizer* config) override {
-    return Status::OK();
+    return absl::OkStatus();
   }
   string name() const override { return kTestPluginOptimizerName; }
   bool UsesFunctionLibrary() const override { return false; }
-  Status Optimize(Cluster* cluster, const GrapplerItem& item,
-                  GraphDef* optimized_graph) override {
-    return Status::OK();
+  absl::Status Optimize(Cluster* cluster, const GrapplerItem& item,
+                        GraphDef* optimized_graph) override {
+    return absl::OkStatus();
   }
-  void Feedback(Cluster* cluster, const GrapplerItem& item,
-                const GraphDef& optimized_graph, double result) override {}
 };
 
 TEST(PluginGraphOptimizerRegistryTest, CrashesOnDuplicateRegistration) {
